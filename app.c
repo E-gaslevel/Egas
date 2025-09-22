@@ -32,14 +32,51 @@
 #include "sl_bluetooth.h"
 #include "app.h"
 
+//#include "app_log.h"
+//#include "sl_iostream_swo.h"
+//#include "sl_udelay.h"
+#include "sl_sleeptimer.h"
+#include "gatt_db.h"
+#include "em_cmu.h"
+#include "em_emu.h"
+#include "em_system.h"
+
+#include "src/adc.h"
+#include "src/gpio.h"
+#include "src/timer.h"
+#include "src/logger.h"
+#include "src/bluetooth.h"
+
+ uint8_t Pulse = 3;   //amount of periods per pulse
+
 // The advertising set handle allocated from Bluetooth stack.
 static uint8_t advertising_set_handle = 0xff;
+static uint32_t time = 0;
+static uint8_t measurements_per_pulse;
+static bool adv_done = false;
+
+uint32_t sampleIndex = 0;                     //index of samples to be displayed in logger
+uint16_t analog_data[sampleCount] = {0};
 
 /**************************************************************************//**
  * Application Init.
  *****************************************************************************/
 SL_WEAK void app_init(void)
 {
+  //app_log_iostream_set(SL_IOSTREAM_TYPE_SWO);
+  //sl_iostream_swo_init();
+  timer_set_tictoc_us();
+  //app_log("init the program to check time of print\r\n");
+
+  // Init DCDC regulator with kit specific parameters
+  EMU_DCDCInit_TypeDef dcdcInit = EMU_DCDCINIT_DEFAULT;
+  EMU_DCDCInit (&dcdcInit);
+
+  adc_init(); //initializes the ADC
+  gpio_init();
+
+  timer_set_cryto(cryotimerPeriod_1k);
+  Pulse = 3;
   /////////////////////////////////////////////////////////////////////////////
   // Put your additional application init code here!                         //
   // This is called once during start-up.                                    //
@@ -51,6 +88,46 @@ SL_WEAK void app_init(void)
  *****************************************************************************/
 SL_WEAK void app_process_action(void)
 {
+  if(measurements_per_pulse >= 5){
+      Pulse+=1;
+      measurements_per_pulse = 0;
+      if(Pulse >=4){
+          Pulse = 1;
+      }
+  }
+
+  //if(!adv_done) // we wait until the advertisment is done.
+  //    return;
+  gpio_wakeup();
+
+  uint32_t pulse_frequency = 1000000;
+  uint32_t dutycycle = 50;
+  timer_pwm_pulse_init(pulse_frequency, dutycycle, Pulse); //pulz that piezo and wait.
+  while(!timer_get_pulse_done());
+
+  //timer_pulse_init(pulse_frequency); //pulz that piezo and wait.
+  //while(!timer_get_pulse_done());
+
+  timer_tick(); // start tick tock timer.
+  adc_measure(analog_data, sampleCount);
+  time = timer_tock();
+
+  //app_log("SampleID=%d,pulses=%d,", measurements_per_pulse, Pulse);
+  sampleIndex++;
+
+  for (int i = 0; i < sampleCount; i++)
+  {
+      //app_log("%d,", analog_data[i]);
+  }
+  //app_log("\r\n");
+
+  float time_sec = time/1000000.0;
+  //app_log("time: [%d]us, [%.2f]sec\r\n", time, time_sec);
+  bluetooth_create_advertisement();
+  bluetooth_start_advertisement();
+  adv_done = false;
+  measurements_per_pulse++;
+  timer_go_to_sleep(); // sleep in EM1 while sending advertisement.
   /////////////////////////////////////////////////////////////////////////////
   // Put your additional application code here!                              //
   // This is called infinitely.                                              //

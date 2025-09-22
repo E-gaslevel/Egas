@@ -117,6 +117,13 @@
 #define _PIN                                     0
 #endif
 
+#ifndef Blue_LED_PORT                           
+#define Blue_LED_PORT                            gpioPortB
+#endif
+#ifndef Blue_LED_PIN                            
+#define Blue_LED_PIN                             13
+#endif
+
 // [CUSTOM_PIN_NAME]$
 
 #endif // PIN_CONFIG_H
