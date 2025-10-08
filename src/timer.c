@@ -112,13 +112,13 @@ void TIMER0_IRQHandler (void)
     if(pulse_pwm)
     {
         /* Clear the interrupt flag in the beginning */
-        uint32_t flags = TIMER_IntGet(TIMER0);
-        TIMER_IntClear(TIMER0, flags);
         //pulseCount >= periodsPerPulse*2 ||
+       // pulseCount++;
+        TIMER_Enable(TIMER0, false);
         if (pulseCount >= periodsPerPulse)
         {
 
-            TIMER_Enable(TIMER0, false);
+       //     TIMER_Enable(TIMER0, false);
             pulse_done = true;
             pulseCount = 0;
 
@@ -129,8 +129,11 @@ void TIMER0_IRQHandler (void)
         }
         else
         {
+            TIMER_Enable(TIMER0, true);
             pulseCount++; //16 cycles
         }
+        uint32_t flags = TIMER_IntGet(TIMER0);
+        TIMER_IntClear(TIMER0, flags);
     } else {
 
         /* Clear the interrupt flag in the beginning */

@@ -102,11 +102,11 @@ SL_WEAK void app_process_action(void)
 
   uint32_t pulse_frequency = 1000000;
   uint32_t dutycycle = 50;
-  timer_pwm_pulse_init(pulse_frequency, dutycycle, Pulse); //pulz that piezo and wait.
+  timer_pwm_pulse_init(pulse_frequency, dutycycle, 3); //pulz that piezo and wait.
   while(!timer_get_pulse_done());
 
-  //timer_pulse_init(pulse_frequency); //pulz that piezo and wait.
-  //while(!timer_get_pulse_done());
+//  timer_pulse_init(pulse_frequency); //pulz that piezo and wait.
+//  while(!timer_get_pulse_done());
 
   timer_tick(); // start tick tock timer.
   adc_measure(analog_data, sampleCount);
